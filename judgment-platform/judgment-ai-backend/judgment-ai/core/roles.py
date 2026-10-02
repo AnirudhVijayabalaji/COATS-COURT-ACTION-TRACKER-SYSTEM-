@@ -1,0 +1,6 @@
+ADMIN = "admin"
+LEGAL_REVIEWER = "legal_reviewer"
+DEPARTMENT_OFFICER = "department_officer"
+DECISION_MAKER = "decision_maker"
+
+ALL_ROLES = {ADMIN, LEGAL_REVIEWER, DEPARTMENT_OFFICER, DECISION_MAKER}
