@@ -187,10 +187,12 @@ function normalizeBrief(brief, caseId, fileName) {
       caseId,
       caseNumber: header.case_number || fileName || "Uploaded judgment",
       court: header.court || "Court not identified",
+      caseType: header.case_type || brief.case_type || "General / Civil Litigation",
       subject: header.case_title || "Judgment brief",
       pages: header.pages_indexed || 0,
       confidence: (header.confidence && header.confidence > 0) ? header.confidence : 94,
     },
+    caseType: header.case_type || brief.case_type || "General / Civil Litigation",
     summary: {
       actionRequired: metrics.immediate_action || "Review required",
       deadlineDays: metrics.nearest_deadline_days ?? "N/A",
@@ -374,13 +376,23 @@ export default function WorkflowScreen({ caseId, fileName, userRole, userEmail, 
   }
 
   if (error || !briefView) {
+    const isRestricted = (error || "").toLowerCase().includes("denied") || (error || "").toLowerCase().includes("permission") || (error || "").includes("403");
     return (
       <div className="workflow-screen">
         <section className="case-command-bar">
           <div>
-            <span className="eyebrow" style={{ cursor: "pointer", color: "var(--gold)" }} onClick={onBack}>← Back to registry</span>
-            <h1>Could not load brief</h1>
-            <p>{error || "No brief was returned for this case."}</p>
+            <span className="eyebrow" style={{ cursor: "pointer", color: "var(--gold)" }} onClick={onBack}>← Back to docket</span>
+            <h1 style={{ color: isRestricted ? "#ef4444" : "inherit" }}>
+              {isRestricted ? "Judicial Docket Isolation" : "Could not load brief"}
+            </h1>
+            <p style={{ marginTop: "8px", maxWidth: "600px" }}>
+              {isRestricted
+                ? "This case docket is assigned to another judge's bench. In accordance with judicial isolation rules, judges can only access their own case history and workspaces."
+                : (error || "No brief was returned for this case.")}
+            </p>
+            <button className="sample-case-btn" onClick={onBack} style={{ marginTop: "1rem" }}>
+              Return to My Docket
+            </button>
           </div>
         </section>
       </div>
@@ -404,11 +416,24 @@ export default function WorkflowScreen({ caseId, fileName, userRole, userEmail, 
       <section className="case-command-bar">
         <div>
           <span className="eyebrow" style={{ cursor: "pointer", color: "var(--gold)", display: "block", marginBottom: "4px" }} onClick={onBack}>
-            ← Back to registry
+            ← Back to docket
           </span>
           <h1>{caseCaption}</h1>
-          <p style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <p style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
             <span>{meta.caseNumber} · {meta.court} · {meta.pages} pages indexed</span>
+            {briefView.caseType && (
+              <span style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                background: briefView.caseType.includes("Asset") ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.08)",
+                border: briefView.caseType.includes("Asset") ? "1px solid var(--gold)" : "1px solid rgba(255,255,255,0.15)",
+                color: briefView.caseType.includes("Asset") ? "var(--gold)" : "#C8C2B9"
+              }}>
+                {briefView.caseType}
+              </span>
+            )}
             {brief?.status && (
               <span className={`status-pill ${normalizeBrief(brief, caseId, fileName).workflowSteps[0]?.status || "tracked"}`} style={{ fontSize: "10px", padding: "2px 8px" }}>
                 {brief.status.toUpperCase()}

@@ -158,12 +158,19 @@ export default function DashboardScreen({ userRole, userEmail, onSelectCase, onN
             ) : pendingReviews.length === 0 ? (
               <div className="empty-notice">
                 <p>No cases are currently pending review.</p>
-                <button className="sample-case-btn" onClick={() => onNavigate("upload")}>Ingest new judgment</button>
+                {userRole !== "admin" && (
+                  <button className="sample-case-btn" onClick={() => onNavigate("upload")}>Ingest new judgment</button>
+                )}
               </div>
             ) : (
               <div className="dashboard-list">
                 {pendingReviews.map((c) => (
-                  <div key={c.case_id} className="dashboard-list-item hoverable" onClick={() => onSelectCase(c.case_id, c.filename)}>
+                  <div 
+                    key={c.case_id} 
+                    className={`dashboard-list-item ${userRole !== "admin" ? "hoverable" : ""}`} 
+                    style={{ cursor: userRole === "admin" ? "default" : "pointer" }}
+                    onClick={userRole !== "admin" ? () => onSelectCase(c.case_id, c.filename) : undefined}
+                  >
                     <div className="item-title-row">
                       <strong>{c.case_title || c.filename}</strong>
                       <span className={`status-pill ${c.status === "review_draft" ? "review" : "required"}`}>
@@ -194,7 +201,12 @@ export default function DashboardScreen({ userRole, userEmail, onSelectCase, onN
             ) : (
               <div className="dashboard-list">
                 {approvedActions.map((action) => (
-                  <div key={action.case_id} className="dashboard-list-item hoverable" onClick={() => onSelectCase(action.case_id, action.filename)}>
+                  <div 
+                    key={action.case_id} 
+                    className={`dashboard-list-item ${userRole !== "admin" ? "hoverable" : ""}`} 
+                    style={{ cursor: userRole === "admin" ? "default" : "pointer" }}
+                    onClick={userRole !== "admin" ? () => onSelectCase(action.case_id, action.filename) : undefined}
+                  >
                     <div className="item-title-row">
                       <strong>{action.case_title}</strong>
                       <span className="status-pill approved">Verified Plan</span>
@@ -236,9 +248,11 @@ export default function DashboardScreen({ userRole, userEmail, onSelectCase, onN
                       </div>
                       <h4>{dl.immediate_action || "Operative compliance direction"}</h4>
                       <p>{dl.case_title} ({dl.case_number})</p>
-                      <button className="ghost-action" style={{ fontSize: "11px", padding: "2px 8px", marginTop: "4px" }} onClick={() => onSelectCase(dl.case_id)}>
-                        Open Workspace
-                      </button>
+                      {userRole !== "admin" && (
+                        <button className="ghost-action" style={{ fontSize: "11px", padding: "2px 8px", marginTop: "4px" }} onClick={() => onSelectCase(dl.case_id)}>
+                          Open Workspace
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

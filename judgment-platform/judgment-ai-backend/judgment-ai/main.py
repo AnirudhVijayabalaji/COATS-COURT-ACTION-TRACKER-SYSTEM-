@@ -62,6 +62,15 @@ async def health():
 @app.on_event("startup")
 async def startup_log():
     init_db()
+    from database import session_scope
+    from services.auth_service import run_database_migrations, seed_default_users
+    try:
+        with session_scope() as db:
+            run_database_migrations(db)
+            seed_default_users(db)
+    except Exception as e:
+        logging.getLogger("startup").warning(f"Startup auth init note: {e}")
+
     log = logging.getLogger("startup")
     log.info("=" * 70)
     log.info("Judgment Platform Backend is running")

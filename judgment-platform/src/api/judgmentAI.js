@@ -25,11 +25,57 @@ const CANDIDATE_URLS = isLocal
       "http://127.0.0.1:8000",
     ].filter(Boolean);
 
+export function getStoredUser() {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("coats_user") : null;
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getStoredToken() {
+  return typeof window !== "undefined" ? (localStorage.getItem("coats_token") || "") : "";
+}
+
+export function setStoredSession(user, token) {
+  if (typeof window !== "undefined") {
+    if (user) localStorage.setItem("coats_user", JSON.stringify(user));
+    if (token) localStorage.setItem("coats_token", token);
+  }
+}
+
+export function clearStoredSession() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("coats_user");
+    localStorage.removeItem("coats_token");
+  }
+}
+
 async function smartFetch(path, options = {}) {
+  const token = getStoredToken();
+  const user = getStoredUser();
+
+  const headers = new Headers(options.headers || {});
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (user?.id && !headers.has("x-user-id")) {
+    headers.set("x-user-id", user.id);
+  }
+  if (user?.role && !headers.has("x-user-role")) {
+    headers.set("x-user-role", user.role);
+  }
+  if (user?.email && !headers.has("x-user-email")) {
+    headers.set("x-user-email", user.email);
+  }
+
+  const mergedOptions = { ...options, headers };
+
   // If path is relative and cachedBaseUrl is valid, construct URL
   if (cachedBaseUrl) {
     try {
-      const res = await fetch(`${cachedBaseUrl}${path}`, options);
+      const res = await fetch(`${cachedBaseUrl}${path}`, mergedOptions);
       if (res.ok || res.status < 500) {
         return res;
       }
@@ -42,7 +88,7 @@ async function smartFetch(path, options = {}) {
   let lastError;
   for (const baseUrl of CANDIDATE_URLS) {
     try {
-      const res = await fetch(`${baseUrl}${path}`, options);
+      const res = await fetch(`${baseUrl}${path}`, mergedOptions);
       if (res.ok || res.status < 500) {
         cachedBaseUrl = baseUrl;
         return res;
@@ -53,7 +99,7 @@ async function smartFetch(path, options = {}) {
   }
 
   // Fallback relative fetch
-  return fetch(path, options);
+  return fetch(path, mergedOptions);
 }
 
 export const BACKEND_URL = cachedBaseUrl || (typeof window !== "undefined" ? window.location.origin : "");
@@ -61,6 +107,13 @@ export const BACKEND_URL = cachedBaseUrl || (typeof window !== "undefined" ? win
 
 // ─── 1. UPLOAD PDF ───────────────────────────────────────────────────────────
 export async function uploadJudgment(file) {
+  const user = getStoredUser();
+  if (user?.role === "admin") {
+    const errorObj = new Error("System administrators cannot upload judgment PDFs. Case intake is reserved for Judges.");
+    errorObj.status = 403;
+    throw errorObj;
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 
@@ -98,6 +151,13 @@ export async function searchECourts(query = "", court = "") {
 }
 
 export async function ingestECourtsCase(cnr) {
+  const user = getStoredUser();
+  if (user?.role === "admin") {
+    const errorObj = new Error("System administrators cannot upload or ingest judgment PDFs. Case intake is reserved for Judges.");
+    errorObj.status = 403;
+    throw errorObj;
+  }
+
   const res = await smartFetch("/ecourts/ingest", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -343,5 +403,52 @@ export async function saveReviewDraft(caseId, role, editedJson, notes = "Saved d
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to save draft review");
   }
+  return res.json();
+}
+
+
+// ─── 11. AUTH APIS ────────────────────────────────────────────────────────────
+export async function signupUser({ username, email, password, name, role = "legal_reviewer", department = "Judicial Branch" }) {
+  const res = await smartFetch("/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password, name, role, department }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Registration failed. Please check your information.");
+  }
+  const data = await res.json();
+  setStoredSession(data.user, data.token);
+  return data;
+}
+
+export async function loginUser(username, password) {
+  const res = await smartFetch("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Invalid username/email or password");
+  }
+  const data = await res.json();
+  setStoredSession(data.user, data.token);
+  return data;
+}
+
+export async function logoutUser() {
+  try {
+    await smartFetch("/auth/logout", { method: "POST" });
+  } catch (e) {
+    // Ignore network error on logout
+  }
+  clearStoredSession();
+}
+
+export async function getAuthProfile() {
+  const res = await smartFetch("/auth/me");
+  if (!res.ok) throw new Error("Failed to load user profile");
   return res.json();
 }

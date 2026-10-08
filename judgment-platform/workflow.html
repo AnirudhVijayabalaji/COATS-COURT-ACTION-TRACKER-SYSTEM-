@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COATS — System Workflow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #07090f;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 50px 30px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 70px;
+  }
+  .header .badge {
+    display: inline-block;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.3);
+    color: #818cf8;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 2.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .header p {
+    color: #475569;
+    font-size: 0.95rem;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── MAIN FLOW ── */
+  .flow-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* Top horizontal flow */
+  .main-flow {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    align-items: start;
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  /* connecting line behind all steps */
+  .main-flow::before {
+    content: '';
+    position: absolute;
+    top: 56px;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, #1e293b, #334155 30%, #6366f1 50%, #334155 70%, #1e293b);
+    z-index: 0;
+  }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    padding: 0 8px;
+    cursor: default;
+    transition: transform 0.25s ease;
+  }
+  .flow-step:hover { transform: translateY(-6px); }
+
+  .step-bubble {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 18px;
+    border: 2px solid transparent;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    position: relative;
+  }
+  .flow-step:hover .step-bubble {
+    border-color: rgba(99,102,241,0.5);
+    box-shadow: 0 0 24px rgba(99,102,241,0.25);
+  }
+
+  .step-num {
+    position: absolute;
+    top: -8px; right: -8px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .step-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .step-sub {
+    font-size: 0.68rem;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  /* ── DETAIL CARDS ── */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .detail-card {
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 20px;
+    padding: 24px;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .detail-card:hover {
+    border-color: #334155;
+    transform: translateY(-3px);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+  .card-step-ref {
+    font-size: 0.65rem;
+    color: #475569;
+    margin-top: 2px;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+  .card-item::before {
+    content: '›';
+    color: #334155;
+    font-size: 1rem;
+    margin-top: -1px;
+    flex-shrink: 0;
+  }
+
+  /* ── DECISION SECTION ── */
+  .decision-section {
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 24px;
+    padding: 30px;
+    margin-bottom: 40px;
+  }
+  .decision-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 24px;
+  }
+  .decision-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+  .decision-node {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 16px 20px;
+    min-width: 160px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .decision-node:hover { border-color: #334155; }
+  .decision-node .node-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .decision-node .node-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 4px;
+  }
+  .decision-node .node-sub { font-size: 0.65rem; color: #475569; }
+
+  .decision-arrow {
+    padding: 0 12px;
+    color: #334155;
+    font-size: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .decision-arrow span {
+    font-size: 0.58rem;
+    color: #475569;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .approved { border-color: rgba(52,211,153,0.3) !important; }
+  .approved .node-label { color: #34d399; }
+  .rejected { border-color: rgba(248,113,113,0.3) !important; }
+  .rejected .node-label { color: #f87171; }
+
+  /* ── ROLES ── */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .role-card {
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .role-card:hover { border-color: #334155; transform: translateY(-3px); }
+  .role-card .role-icon { font-size: 1.8rem; margin-bottom: 10px; }
+  .role-card .role-name { font-size: 0.78rem; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; }
+  .role-card .role-access { font-size: 0.65rem; color: #475569; line-height: 1.5; }
+  .role-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .badge-green { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+  .badge-red   { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+  .badge-blue  { background: rgba(96,165,250,0.1); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); }
+
+  /* colour palettes */
+  .c-blue   { background: rgba(59,130,246,0.12); }
+  .c-purple { background: rgba(167,139,250,0.12); }
+  .c-cyan   { background: rgba(34,211,238,0.12); }
+  .c-green  { background: rgba(52,211,153,0.12); }
+  .c-yellow { background: rgba(251,191,36,0.12); }
+  .c-red    { background: rgba(248,113,113,0.12); }
+
+  .n-blue   { background: #3b82f6; color: #fff; }
+  .n-purple { background: #a78bfa; color: #fff; }
+  .n-cyan   { background: #22d3ee; color: #000; }
+  .n-green  { background: #34d399; color: #000; }
+  .n-yellow { background: #fbbf24; color: #000; }
+
+  .section-gap { margin-bottom: 40px; }
+  .section-heading {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .main-flow { grid-template-columns: 1fr 1fr; }
+    .main-flow::before { display: none; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .roles-grid { grid-template-columns: 1fr 1fr; }
+    .decision-flow { flex-direction: column; }
+    .decision-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="badge">System Workflow</div>
+  <h1>COATS Decision Workflow</h1>
+  <p>How a court judgment PDF becomes a structured, human-verified action plan</p>
+</div>
+
+<div class="flow-container">
+
+  <!-- ══ STEP 1: MAIN FLOW BUBBLES ══ -->
+  <div class="section-gap">
+    <div class="section-heading">📌 &nbsp; Step-by-Step Process</div>
+    <div class="main-flow">
+
+      <div class="flow-step">
+        <div class="step-bubble c-blue">
+          📄
+          <div class="step-num n-blue">1</div>
+        </div>
+        <div class="step-title">PDF Ingestion</div>
+        <div class="step-sub">User uploads court judgment via drag & drop</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-bubble c-purple">
+          🔍
+          <div class="step-num n-purple">2</div>
+        </div>
+        <div class="step-title">OCR & Extraction</div>
+        <div class="step-sub">pdfplumber + Tesseract reads text & scanned pages</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-bubble c-cyan">
+          🧠
+          <div class="step-num n-cyan">3</div>
+        </div>
+        <div class="step-title">AI Analysis</div>
+        <div class="step-sub">LangChain + Groq generates structured JSON brief</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-bubble c-yellow">
+          📊
+          <div class="step-num n-yellow">4</div>
+        </div>
+        <div class="step-title">Dashboard Render</div>
+        <div class="step-sub">React displays Workflow, Evidence, Timeline & Audit</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-bubble c-green">
+          ✅
+          <div class="step-num n-green">5</div>
+        </div>
+        <div class="step-title">Human Verification</div>
+        <div class="step-sub">Legal Reviewer approves or rejects each AI step</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ STEP 2: DETAIL CARDS ══ -->
+  <div class="section-gap">
+    <div class="section-heading">🔎 &nbsp; What Happens at Each Stage</div>
+    <div class="detail-grid">
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-blue">📄</div>
+          <div>
+            <div class="card-title">PDF Upload & Storage</div>
+            <div class="card-step-ref">Steps 1 — FastAPI /upload endpoint</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item">User drags & drops any court judgment PDF</div>
+          <div class="card-item">File is saved to server upload directory</div>
+          <div class="card-item">Case record is created in SQLite / Supabase</div>
+          <div class="card-item">A unique Case ID is returned to the frontend</div>
+          <div class="card-item">SSE stream starts to show processing progress</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-purple">🔍</div>
+          <div>
+            <div class="card-title">Text Extraction & OCR</div>
+            <div class="card-step-ref">Steps 2 — pdf_service.py</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item">pdfplumber extracts raw text from digital PDFs</div>
+          <div class="card-item">If text &lt; 50 chars, OCR mode auto-activates</div>
+          <div class="card-item">pdf2image converts each page to an image</div>
+          <div class="card-item">pytesseract runs OCR on each scanned page image</div>
+          <div class="card-item">All pages are stitched into a single text block</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-cyan">🧠</div>
+          <div>
+            <div class="card-title">Agentic AI Analysis</div>
+            <div class="card-step-ref">Steps 3 — ai_service.py + groq_service.py</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item">Full text is sent to LangChain with system prompt</div>
+          <div class="card-item">Groq (Llama 3.3 70B) reads the entire judgment</div>
+          <div class="card-item">AI returns a strict JSON with header, metrics, steps</div>
+          <div class="card-item">Each workflow step has source_page & key_extract</div>
+          <div class="card-item">Fallback: Google ADK / Gemini if Groq fails</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-yellow">📊</div>
+          <div>
+            <div class="card-title">Dashboard — 4 Tabs</div>
+            <div class="card-step-ref">Steps 4 — WorkflowScreen.jsx</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item"><strong style="color:#cbd5e1">Workflow:</strong> AI action plan with deadlines & owners</div>
+          <div class="card-item"><strong style="color:#cbd5e1">Evidence:</strong> Relief items & key facts extracted</div>
+          <div class="card-item"><strong style="color:#cbd5e1">Timeline:</strong> Chronological compliance dates</div>
+          <div class="card-item"><strong style="color:#cbd5e1">Audit:</strong> Plain-language court directive summary</div>
+          <div class="card-item">AI Chat panel for RAG-based Q&A on the judgment</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-green">✅</div>
+          <div>
+            <div class="card-title">Human Verification</div>
+            <div class="card-step-ref">Steps 5 — review router + Role-Based Access</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item">Legal Reviewer reads each AI-generated step</div>
+          <div class="card-item">Clicks Approve ✅ or Reject ❌ on each step</div>
+          <div class="card-item">Dept Officer role is blocked from approving</div>
+          <div class="card-item">Approved steps are saved to database permanently</div>
+          <div class="card-item">Final verified data feeds the Approved Dashboard</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="card-header">
+          <div class="card-icon c-red">💬</div>
+          <div>
+            <div class="card-title">RAG Q&A Chat</div>
+            <div class="card-step-ref">POST /cases/{id}/ask — ChatPanel.jsx</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-item">User types a question about the uploaded judgment</div>
+          <div class="card-item">ChromaDB finds the most relevant text chunks</div>
+          <div class="card-item">LlamaIndex retrieves and ranks source paragraphs</div>
+          <div class="card-item">Groq answers using ONLY the source document text</div>
+          <div class="card-item">Every answer is traced back to a specific page number</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ STEP 3: DECISION FLOW ══ -->
+  <div class="section-gap">
+    <div class="section-heading">⚖️ &nbsp; Human-in-the-Loop Decision Flow</div>
+    <div class="decision-section">
+      <div class="decision-flow">
+
+        <div class="decision-node">
+          <div class="node-icon">🤖</div>
+          <div class="node-label">AI Generates Step</div>
+          <div class="node-sub">With source reference & deadline</div>
+        </div>
+
+        <div class="decision-arrow">→<span>sends to</span></div>
+
+        <div class="decision-node">
+          <div class="node-icon">👨‍⚖️</div>
+          <div class="node-label">Legal Reviewer</div>
+          <div class="node-sub">Reads step & source evidence</div>
+        </div>
+
+        <div class="decision-arrow">→<span>decides</span></div>
+
+        <div class="decision-node approved">
+          <div class="node-icon">✅</div>
+          <div class="node-label">Approved</div>
+          <div class="node-sub">Saved to Verified Dashboard</div>
+        </div>
+
+        <div style="display:flex;align-items:center;padding:0 6px;color:#334155;font-size:1rem">|</div>
+
+        <div class="decision-node rejected">
+          <div class="node-icon">❌</div>
+          <div class="node-label">Rejected</div>
+          <div class="node-sub">Flagged for re-review or escalation</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 4: ROLES ══ -->
+  <div class="section-gap">
+    <div class="section-heading">🔐 &nbsp; Role-Based Access Control</div>
+    <div class="roles-grid">
+
+      <div class="role-card">
+        <div class="role-icon">👑</div>
+        <div class="role-name">Admin</div>
+        <div class="role-access">Full access. Can approve, reject, view all cases and the complete audit trail.</div>
+        <div class="role-badge badge-green">Full Access</div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-icon">👨‍⚖️</div>
+        <div class="role-name">Legal Reviewer</div>
+        <div class="role-access">Can read the AI brief and approve or reject individual workflow steps.</div>
+        <div class="role-badge badge-blue">Can Approve</div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-icon">🏛️</div>
+        <div class="role-name">Decision Maker</div>
+        <div class="role-access">Senior oversight. Views the approved dashboard and final verdicts only.</div>
+        <div class="role-badge badge-blue">Read + Oversight</div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-icon">🚫</div>
+        <div class="role-name">Dept Officer</div>
+        <div class="role-access">Read-only. Cannot approve or reject steps. Blocked from sensitive data.</div>
+        <div class="role-badge badge-red">Read Only</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

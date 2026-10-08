@@ -20,6 +20,7 @@ The JSON must exactly follow this schema:
     "case_title": "Full party names, e.g. State of Telangana v. Union of India",
     "case_number": "WP No. XXXX/YYYY or equivalent",
     "court": "Name of the court",
+    "case_type": "Asset / Property Dispute | Commercial & Arbitration | Writ / Mandamus | Service & Pension | Revenue & Tax | Environmental / PIL | Criminal | Civil Litigation",
     "pages_indexed": <integer>,
     "confidence": <integer 70-99>
   },
@@ -87,6 +88,45 @@ def _strip_json_fences(raw: str) -> str:
     return raw.strip()
 
 
+def classify_case_type(text: str) -> str:
+    """Automatic case type classification based on keywords in judgment text."""
+    lower = text.lower()
+    if any(k in lower for k in [
+        "land acquisition", "property", "title", "possession", "eviction",
+        "encroachment", "partition", "mortgage", "immovable property",
+        "compensation for land", "suit for possession", "asset", "leasehold",
+        "tenancy", "premises"
+    ]):
+        return "Asset / Property Dispute"
+    if any(k in lower for k in [
+        "arbitration", "tender", "contract", "concessionaire",
+        "epc contract", "bank guarantee", "commercial dispute", "arbitral tribunal"
+    ]):
+        return "Commercial & Arbitration"
+    if any(k in lower for k in [
+        "mandamus", "article 226", "article 32", "writ petition", "public duty"
+    ]):
+        return "Writ / Mandamus"
+    if any(k in lower for k in [
+        "pension", "gratuity", "service matter", "disciplinary",
+        "retirement benefits", "pay scale", "seniority", "superannuation"
+    ]):
+        return "Service & Pension"
+    if any(k in lower for k in [
+        "tax", "gst", "excise", "customs", "income tax", "assessment year"
+    ]):
+        return "Revenue & Tax"
+    if any(k in lower for k in [
+        "pollution", "environment", "national green tribunal", "ngt", "forest", "wildlife", "pil"
+    ]):
+        return "Environmental / PIL"
+    if any(k in lower for k in [
+        "penal code", "ipc", "crpc", "bns", "bnss", "bail", "conviction", "acquittal"
+    ]):
+        return "Criminal"
+    return "Civil Litigation"
+
+
 def generate_case_brief(pages: list[dict]) -> dict:
     # 1. Stitch all the extracted text together
     text_content = "\n\n".join(f"[Page {p['page']}]: {p['text']}" for p in pages)
@@ -107,16 +147,22 @@ def generate_case_brief(pages: list[dict]) -> dict:
         
         # 3. Clean and parse the JSON output
         cleaned_json = _strip_json_fences(raw_response)
-        return json.loads(cleaned_json)
+        parsed = json.loads(cleaned_json)
+        if "header" in parsed and isinstance(parsed["header"], dict):
+            if not parsed["header"].get("case_type") or parsed["header"]["case_type"] == "Civil Litigation":
+                parsed["header"]["case_type"] = classify_case_type(text_content)
+        return parsed
         
     except Exception as e:
         logger.error(f"AI Extraction failed: {e}")
+        detected_type = classify_case_type(text_content)
         # Fallback dictionary if the API completely fails
         return {
           "header": {
             "case_title": "AI Extraction Failed",
             "case_number": "N/A",
             "court": "N/A",
+            "case_type": detected_type,
             "pages_indexed": len(pages),
             "confidence": 0
           },

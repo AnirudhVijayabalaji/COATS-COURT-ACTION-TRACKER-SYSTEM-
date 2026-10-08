@@ -35,7 +35,7 @@ const DEMO_CHIPS = [
   },
 ];
 
-export default function UploadScreen({ onComplete }) {
+export default function UploadScreen({ onComplete, currentUser }) {
   const [phase, setPhase] = useState("idle");
   const [steps, setSteps] = useState(STEPS.map((label) => ({ label, done: false })));
   const [dragOver, setDragOver] = useState(false);
@@ -52,7 +52,28 @@ export default function UploadScreen({ onComplete }) {
     return () => streamRef.current?.close();
   }, []);
 
+  if (currentUser?.role === "admin") {
+    return (
+      <div className="upload-screen" style={{ maxWidth: "620px", margin: "4rem auto", textAlign: "center" }}>
+        <div className="review-card" style={{ padding: "2.5rem 2rem", background: "#1C1414", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "14px" }}>
+          <div style={{ fontSize: "36px", marginBottom: "1rem" }}>🚫</div>
+          <h2 style={{ color: "#EF4444", fontSize: "22px", fontWeight: "700", marginBottom: "0.75rem" }}>
+            Upload Access Restricted
+          </h2>
+          <p style={{ color: "#C8C2B9", fontSize: "14px", lineHeight: "1.6", marginBottom: "1.5rem" }}>
+            System administrators are not permitted to upload court judgment PDFs. Case intake is reserved exclusively for Judicial Reviewers and Judges.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const startAnalysis = async (file) => {
+    if (currentUser?.role === "admin") {
+      setError("System administrators cannot upload judgment PDFs.");
+      setPhase("error");
+      return;
+    }
     setFileName(file.name);
     setPhase("analyzing");
     setError("");
@@ -78,6 +99,11 @@ export default function UploadScreen({ onComplete }) {
   };
 
   const startECourtsAnalysis = async (cnr, title) => {
+    if (currentUser?.role === "admin") {
+      setError("System administrators cannot upload or ingest judgment PDFs.");
+      setPhase("error");
+      return;
+    }
     setModalOpen(false);
     setFileName(title || `eCourts Case (CNR: ${cnr})`);
     setPhase("analyzing");

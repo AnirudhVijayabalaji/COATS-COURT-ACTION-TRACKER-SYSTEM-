@@ -3,7 +3,10 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from config import settings
+from core.roles import ADMIN
+from core.security import get_current_user
 from database import get_db
+from models.db_models import User
 from models.schemas import UploadResponse
 from services import case_store, storage_service
 from services.audit_service import log_action
@@ -18,8 +21,15 @@ router = APIRouter()
 async def upload_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if user.role == ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="System administrators cannot upload judgment PDFs. Case intake is reserved for Judges.",
+        )
+
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are accepted")
 
@@ -46,12 +56,13 @@ async def upload_pdf(
             detail="Not a valid court judgment PDF. Please upload an official court order or judgment."
         )
 
-    case_store.create_case(db, case_id, file.filename, document_info)
-    log_action(db, "pdf_uploaded", case_id=case_id, details={
+    case_store.create_case(db, case_id, file.filename, document_info, created_by=user.id)
+    log_action(db, "pdf_uploaded", case_id=case_id, user_id=user.id, details={
         "filename": file.filename,
         "size_bytes": document_info["size_bytes"],
         "storage_backend": document_info["backend"],
         "guardrail": "NVIDIA NeMo Guardrails (Passed)",
+        "uploaded_by": user.username or user.email,
     })
     db.commit()
 

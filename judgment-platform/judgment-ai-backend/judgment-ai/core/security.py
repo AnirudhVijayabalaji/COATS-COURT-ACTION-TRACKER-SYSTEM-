@@ -29,15 +29,41 @@ def _get_or_create_dev_user(
 
 def get_current_user(
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_user_id: str | None = Header(default=None),
     x_user_email: str | None = Header(default=None),
     x_user_role: str | None = Header(default=None),
     x_user_name: str | None = Header(default=None),
     x_user_department: str | None = Header(default=None),
 ) -> User:
     """
-    Development auth that works immediately.
-    Production should replace this with Clerk/NextAuth JWT verification and map JWT claims to users.
+    Authenticate user via session token (Bearer token), user ID header, or email header.
     """
+    from services.auth_service import parse_session_token
+
+    # 1. Bearer token
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:].strip()
+        parsed = parse_session_token(token)
+        if parsed:
+            user_id, _ = parsed
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                return user
+
+    # 2. Direct x-user-id header
+    if x_user_id:
+        user = db.query(User).filter(User.id == x_user_id).first()
+        if user:
+            return user
+
+    # 3. Direct email / username lookup
+    if x_user_email:
+        clean_email = x_user_email.strip().lower()
+        user = db.query(User).filter((User.email == clean_email) | (User.username == clean_email)).first()
+        if user:
+            return user
+
     if settings.dev_auth_enabled:
         return _get_or_create_dev_user(
             db,
@@ -47,7 +73,7 @@ def get_current_user(
             department=x_user_department,
         )
 
-    raise HTTPException(401, "Production JWT verification is not configured")
+    raise HTTPException(401, "Authentication required. Please log in.")
 
 
 def require_roles(*roles: str):

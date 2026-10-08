@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import settings
+from core.roles import ADMIN
+from core.security import get_current_user
 from database import get_db
+from models.db_models import User
 from services import case_store, storage_service
 from services.audit_service import log_action
 from services.ecourts_service import fetch_case_by_cnr, get_sample_cases, search_ecourts_cases
@@ -41,12 +43,21 @@ def search_cases(req: SearchECourtsRequest):
 
 
 @router.post("/ingest")
-def ingest_by_cnr(req: IngestCNRRequest, db: Session = Depends(get_db)):
+def ingest_by_cnr(
+    req: IngestCNRRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Ingests a court judgment by its 16-character CNR number or sample ID.
     Fetches official case record & PDF, validates with NVIDIA NeMo Guardrails,
     and initiates the full legal brief & RAG indexing pipeline.
     """
+    if user.role == ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="System administrators cannot upload or ingest judgment PDFs. Case intake is reserved for Judges.",
+        )
     cnr = req.cnr.strip().upper()
     if not cnr or len(cnr) < 6:
         raise HTTPException(400, "Please provide a valid Indian Court CNR number or case reference.")
@@ -80,8 +91,8 @@ def ingest_by_cnr(req: IngestCNRRequest, db: Session = Depends(get_db)):
         )
 
     # 3. Create Case record in Database
-    case_store.create_case(db, case_id, filename, document_info)
-    log_action(db, "ecourts_ingested", case_id=case_id, details={
+    case_store.create_case(db, case_id, filename, document_info, created_by=user.id)
+    log_action(db, "ecourts_ingested", case_id=case_id, user_id=user.id, details={
         "cnr": cnr,
         "court": metadata.get("court"),
         "case_title": metadata.get("title"),
@@ -89,6 +100,7 @@ def ingest_by_cnr(req: IngestCNRRequest, db: Session = Depends(get_db)):
         "size_bytes": len(pdf_bytes),
         "source": case_bundle.get("source"),
         "guardrail": "NVIDIA NeMo Guardrails (Passed)",
+        "uploaded_by": user.username or user.email,
     })
     db.commit()
 

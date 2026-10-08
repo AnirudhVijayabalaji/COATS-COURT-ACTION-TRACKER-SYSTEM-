@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COATS — Architecture & Workflow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0e1a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .page-title h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .page-title p {
+    color: #64748b;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 24px;
+    padding-left: 4px;
+  }
+
+  /* ── WORKFLOW DIAGRAM ── */
+  .workflow-section { max-width: 1000px; margin: 0 auto 80px; }
+
+  .workflow-steps {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .wf-step {
+    flex: 1;
+    min-width: 130px;
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .wf-step:hover { transform: translateY(-4px); border-color: #3b82f6; }
+
+  .wf-step + .wf-step::before {
+    content: '→';
+    position: absolute;
+    left: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #334155;
+    z-index: 1;
+  }
+
+  .wf-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin: 0 auto 14px;
+  }
+  .wf-num {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .wf-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .wf-desc {
+    font-size: 0.7rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .blue-icon   { background: rgba(59,130,246,0.15); }
+  .purple-icon { background: rgba(167,139,250,0.15); }
+  .green-icon  { background: rgba(52,211,153,0.15); }
+  .yellow-icon { background: rgba(251,191,36,0.15); }
+  .red-icon    { background: rgba(248,113,113,0.15); }
+  .cyan-icon   { background: rgba(34,211,238,0.15); }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-section { max-width: 1100px; margin: 0 auto; }
+
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .arch-layer {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 20px;
+    padding: 24px 20px;
+  }
+  .arch-layer:hover { border-color: #334155; }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1e293b;
+  }
+  .layer-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .layer-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .tech-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin: 3px;
+  }
+  .tech-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .arrow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #334155;
+    font-size: 1.4rem;
+  }
+  .arrow-label {
+    font-size: 0.58rem;
+    color: #475569;
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .db-card {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .connector-bar {
+    background: linear-gradient(90deg, #1e293b, #334155, #1e293b);
+    height: 2px;
+    border-radius: 2px;
+    grid-column: 1 / -1;
+    margin: 8px 0;
+    position: relative;
+  }
+  .connector-bar::before, .connector-bar::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    width: 12px; height: 12px;
+    background: #334155;
+    border-radius: 50%;
+  }
+  .connector-bar::before { left: 16%; }
+  .connector-bar::after  { left: 50%; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 40px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: #64748b;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .workflow-steps { flex-direction: column; }
+    .wf-step + .wf-step::before { content: '↓'; left: 50%; top: -18px; transform: translateX(-50%); }
+    .arch-grid { grid-template-columns: 1fr; }
+    .arrow-col { transform: rotate(90deg); }
+    .bottom-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>COATS — Architecture & Workflow</h1>
+  <p>Court Order Action & Tracking System · Technical Overview</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 1 — WORKFLOW DIAGRAM
+══════════════════════════════════════════════ -->
+<div class="workflow-section">
+  <div class="section-label">📋 &nbsp; End-to-End Workflow</div>
+
+  <div class="workflow-steps">
+
+    <div class="wf-step">
+      <div class="wf-icon blue-icon">📄</div>
+      <div class="wf-num">Step 01</div>
+      <div class="wf-title">PDF Upload</div>
+      <div class="wf-desc">User uploads court judgment PDF via React dashboard</div>
+    </div>
+
+    <div class="wf-step">
+      <div class="wf-icon purple-icon">🔍</div>
+      <div class="wf-num">Step 02</div>
+      <div class="wf-title">Text Extraction</div>
+      <div class="wf-desc">pdfplumber extracts text; pytesseract OCR handles scanned PDFs</div>
+    </div>
+
+    <div class="wf-step">
+      <div class="wf-icon cyan-icon">🧠</div>
+      <div class="wf-num">Step 03</div>
+      <div class="wf-title">AI Analysis</div>
+      <div class="wf-desc">LangChain + Groq (Llama 3.3) extracts structured JSON from legal text</div>
+    </div>
+
+    <div class="wf-step">
+      <div class="wf-icon green-icon">🗄️</div>
+      <div class="wf-num">Step 04</div>
+      <div class="wf-title">Data Storage</div>
+      <div class="wf-desc">Structured data saved to SQLite (local) or Supabase PostgreSQL (cloud)</div>
+    </div>
+
+    <div class="wf-step">
+      <div class="wf-icon yellow-icon">📊</div>
+      <div class="wf-num">Step 05</div>
+      <div class="wf-title">Dashboard View</div>
+      <div class="wf-desc">React renders Workflow, Evidence, Timeline & Audit tabs</div>
+    </div>
+
+    <div class="wf-step">
+      <div class="wf-icon red-icon">✅</div>
+      <div class="wf-num">Step 06</div>
+      <div class="wf-title">Human Verification</div>
+      <div class="wf-desc">Legal Reviewer approves / rejects each AI-generated step</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 2 — ARCHITECTURE DIAGRAM
+══════════════════════════════════════════════ -->
+<div class="arch-section">
+  <div class="section-label">🏗️ &nbsp; System Architecture</div>
+
+  <div class="arch-grid">
+
+    <!-- ROW 1: Frontend | Arrow | Backend | Arrow | AI Engine -->
+
+    <!-- FRONTEND -->
+    <div class="arch-layer">
+      <div class="layer-header">
+        <div class="layer-icon blue-icon">🖥️</div>
+        <div class="layer-name">Frontend Layer</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#61DAFB"></span>React 19</span>
+      <span class="tech-pill"><span class="dot" style="background:#646CFF"></span>Vite</span>
+      <span class="tech-pill"><span class="dot" style="background:#F7A41D"></span>Firebase Hosting</span>
+      <span class="tech-pill"><span class="dot" style="background:#38bdf8"></span>Vanilla CSS</span>
+      <span class="tech-pill"><span class="dot" style="background:#a78bfa"></span>WorkflowScreen.jsx</span>
+      <span class="tech-pill"><span class="dot" style="background:#34d399"></span>ChatPanel.jsx</span>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-col">
+      <div>⟷</div>
+      <div class="arrow-label">REST API<br/>HTTP/JSON</div>
+    </div>
+
+    <!-- BACKEND -->
+    <div class="arch-layer">
+      <div class="layer-header">
+        <div class="layer-icon purple-icon">⚙️</div>
+        <div class="layer-name">Backend Layer</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#009688"></span>Python 3.11</span>
+      <span class="tech-pill"><span class="dot" style="background:#009688"></span>FastAPI</span>
+      <span class="tech-pill"><span class="dot" style="background:#fff"></span>Uvicorn</span>
+      <span class="tech-pill"><span class="dot" style="background:#ff6b35"></span>SQLAlchemy ORM</span>
+      <span class="tech-pill"><span class="dot" style="background:#3b82f6"></span>Docker</span>
+      <span class="tech-pill"><span class="dot" style="background:#8B00FF"></span>Railway.app</span>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-col">
+      <div>⟷</div>
+      <div class="arrow-label">LangChain<br/>Agent Call</div>
+    </div>
+
+    <!-- AI ENGINE -->
+    <div class="arch-layer">
+      <div class="layer-header">
+        <div class="layer-icon cyan-icon">🤖</div>
+        <div class="layer-name">AI Engine Layer</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#f97316"></span>LangChain</span>
+      <span class="tech-pill"><span class="dot" style="background:#FF6B35"></span>Groq API</span>
+      <span class="tech-pill"><span class="dot" style="background:#FF6B35"></span>Llama 3.3 70B</span>
+      <span class="tech-pill"><span class="dot" style="background:#4285F4"></span>Google ADK</span>
+      <span class="tech-pill"><span class="dot" style="background:#4285F4"></span>Gemini 2.0 Flash</span>
+      <span class="tech-pill"><span class="dot" style="background:#a78bfa"></span>ChromaDB</span>
+      <span class="tech-pill"><span class="dot" style="background:#34d399"></span>LlamaIndex</span>
+    </div>
+
+    <!-- CONNECTOR BAR -->
+    <div class="connector-bar full-width"></div>
+
+  </div>
+
+  <!-- ROW 2: Storage + PDF Layer + Auth -->
+  <div class="bottom-row">
+
+    <div class="db-card">
+      <div class="layer-header" style="justify-content:center">
+        <div class="layer-icon green-icon">🗄️</div>
+        <div class="layer-name">Storage Layer</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#3ECF8E"></span>Supabase PostgreSQL</span>
+      <span class="tech-pill"><span class="dot" style="background:#60a5fa"></span>SQLite (Local Dev)</span>
+      <span class="tech-pill"><span class="dot" style="background:#f59e0b"></span>ChromaDB Vectors</span>
+    </div>
+
+    <div class="db-card">
+      <div class="layer-header" style="justify-content:center">
+        <div class="layer-icon yellow-icon">📄</div>
+        <div class="layer-name">PDF Processing</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#f43f5e"></span>pdfplumber</span>
+      <span class="tech-pill"><span class="dot" style="background:#a78bfa"></span>pdf2image</span>
+      <span class="tech-pill"><span class="dot" style="background:#34d399"></span>pytesseract OCR</span>
+      <span class="tech-pill"><span class="dot" style="background:#fbbf24"></span>Poppler Utils</span>
+    </div>
+
+    <div class="db-card">
+      <div class="layer-header" style="justify-content:center">
+        <div class="layer-icon red-icon">🔐</div>
+        <div class="layer-name">Auth & Config</div>
+      </div>
+      <span class="tech-pill"><span class="dot" style="background:#F57C00"></span>Firebase Auth</span>
+      <span class="tech-pill"><span class="dot" style="background:#3b82f6"></span>Role-Based Access</span>
+      <span class="tech-pill"><span class="dot" style="background:#64748b"></span>python-dotenv</span>
+      <span class="tech-pill"><span class="dot" style="background:#64748b"></span>CORS Middleware</span>
+    </div>
+
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#61DAFB"></div>React / Frontend</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#009688"></div>FastAPI / Backend</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>LangChain / Groq AI</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4285F4"></div>Google ADK / Gemini</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3ECF8E"></div>Supabase / Database</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#F57C00"></div>Firebase / Hosting</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8B00FF"></div>Railway / Cloud</div>
+  </div>
+
+</div>
+
+</body>
+</html>

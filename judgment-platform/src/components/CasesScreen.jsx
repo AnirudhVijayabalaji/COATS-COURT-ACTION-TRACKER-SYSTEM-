@@ -1,13 +1,27 @@
 import { useEffect, useState } from "react";
 import { listCases } from "../api/judgmentAI";
 
-export default function CasesScreen({ onSelectCase, onNavigate }) {
+const CASE_TYPES = [
+  ["all", "All Case Types"],
+  ["Asset / Property Dispute", "🏛️ Asset / Property"],
+  ["Commercial & Arbitration", "📜 Commercial & Arbitration"],
+  ["Writ / Mandamus", "⚖️ Writ / Mandamus"],
+  ["Service & Pension", "💼 Service & Pension"],
+  ["Revenue & Tax", "🏢 Revenue & Tax"],
+  ["Environmental / PIL", "🌿 Environmental / PIL"],
+  ["Civil Litigation", "📁 Civil Litigation"],
+];
+
+export default function CasesScreen({ currentUser, onSelectCase, onNavigate }) {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const isJudge = currentUser?.role === "legal_reviewer";
 
   useEffect(() => {
     let active = true;
@@ -29,16 +43,19 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
     }
     loadCases();
     return () => { active = false; };
-  }, []);
+  }, [currentUser]);
 
   const filteredCases = cases.filter((c) => {
     const titleMatch = (c.case_title || "").toLowerCase().includes(search.toLowerCase());
     const numMatch = (c.case_number || "").toLowerCase().includes(search.toLowerCase());
     const fileMatch = (c.filename || "").toLowerCase().includes(search.toLowerCase());
-    const matchSearch = titleMatch || numMatch || fileMatch;
+    const typeSearch = (c.case_type || "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = titleMatch || numMatch || fileMatch || typeSearch;
 
-    if (statusFilter === "all") return matchSearch;
-    return matchSearch && c.status === statusFilter;
+    const matchStatus = statusFilter === "all" || c.status === statusFilter;
+    const matchType = typeFilter === "all" || (c.case_type || "").toLowerCase().includes(typeFilter.toLowerCase());
+
+    return matchSearch && matchStatus && matchType;
   });
 
   const getStatusLabel = (status) => {
@@ -71,8 +88,8 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
     return (
       <div className="dashboard-loading review-card" style={{ margin: "4rem auto", textAlign: "center" }}>
         <div className="spinner-ring" style={{ margin: "0 auto 1.5rem" }} />
-        <h2>Loading Court Judgments...</h2>
-        <p className="analysis-file">Reading history logs and case registry database</p>
+        <h2>Loading Judicial Docket...</h2>
+        <p className="analysis-file">Reading isolated bench logs and case registry database</p>
       </div>
     );
   }
@@ -92,9 +109,15 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
       {/* Title section */}
       <section className="dashboard-header-row" style={{ marginBottom: "2rem" }}>
         <div>
-          <span className="eyebrow">Digital court files & logs</span>
-          <h1>Judgment Registry</h1>
-          <p className="subtitle">All ingested court orders, operational status, and compliance workflows</p>
+          <span className="eyebrow">
+            {isJudge ? "Personal Judicial Bench" : "Digital Court Files & Logs"}
+          </span>
+          <h1>{isJudge ? "My Judicial Docket" : "Judgment Registry"}</h1>
+          <p className="subtitle">
+            {isJudge
+              ? `Showing cases uploaded by ${currentUser?.name || "you"}. Dockets are strictly isolated to your bench.`
+              : "All ingested court orders, operational status, and compliance workflows"}
+          </p>
         </div>
         <button className="sample-case-btn" onClick={() => onNavigate("upload")} style={{ height: "fit-content", display: "flex", gap: "8px", alignItems: "center" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -110,45 +133,91 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
           <input
             type="text"
             className="chat-input"
-            placeholder="Search by title, case number, or filename..."
+            placeholder="Search by title, reference number, filename, or case type..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: "100%", margin: 0, padding: "10px 18px" }}
           />
         </div>
-        <div className="filter-chips-row">
-          {[
-            ["all", "All Cases"],
-            ["pending_review", "Pending AI Review"],
-            ["review_draft", "Review Drafts"],
-            ["approved", "Approved Plans"],
-            ["rejected", "Rejected Cases"],
-            ["processing", "Processing"],
-            ["failed", "Failed Ingestions"]
-          ].map(([statusVal, label]) => (
-            <button
-              key={statusVal}
-              className={`suggestion-chip ${statusFilter === statusVal ? "active-filter" : ""}`}
-              onClick={() => setStatusFilter(statusVal)}
-              style={{
-                backgroundColor: statusFilter === statusVal ? "var(--ink)" : "white",
-                color: statusFilter === statusVal ? "var(--gold-light)" : "var(--ink)",
-                border: statusFilter === statusVal ? "1px solid var(--ink)" : "1px solid var(--paper-border)",
-                fontWeight: statusFilter === statusVal ? "600" : "400"
-              }}
-            >
-              {label}
-            </button>
-          ))}
+
+        {/* Case Type Filter Chips */}
+        <div style={{ marginBottom: "10px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "600", color: "#8A8480", textTransform: "uppercase", letterSpacing: "0.05em", marginRight: "10px" }}>
+            Case Type:
+          </span>
+          <div className="filter-chips-row" style={{ display: "inline-flex", flexWrap: "wrap", gap: "6px" }}>
+            {CASE_TYPES.map(([typeVal, label]) => (
+              <button
+                key={typeVal}
+                className={`suggestion-chip ${typeFilter === typeVal ? "active-filter" : ""}`}
+                onClick={() => setTypeFilter(typeVal)}
+                style={{
+                  backgroundColor: typeFilter === typeVal ? "var(--gold)" : "#1E1D1B",
+                  color: typeFilter === typeVal ? "#0D0D0C" : "#C8C2B9",
+                  border: typeFilter === typeVal ? "1px solid var(--gold)" : "1px solid rgba(255,255,255,0.1)",
+                  fontWeight: typeFilter === typeVal ? "700" : "500",
+                  padding: "4px 10px",
+                  fontSize: "12px",
+                  borderRadius: "6px",
+                  cursor: "pointer"
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Filter Chips */}
+        <div>
+          <span style={{ fontSize: "11px", fontWeight: "600", color: "#8A8480", textTransform: "uppercase", letterSpacing: "0.05em", marginRight: "10px" }}>
+            Status:
+          </span>
+          <div className="filter-chips-row" style={{ display: "inline-flex", flexWrap: "wrap", gap: "6px" }}>
+            {[
+              ["all", "All Statuses"],
+              ["pending_review", "Pending AI Review"],
+              ["review_draft", "Review Drafts"],
+              ["approved", "Approved Plans"],
+              ["rejected", "Rejected Cases"],
+              ["processing", "Processing"],
+              ["failed", "Failed Ingestions"]
+            ].map(([statusVal, label]) => (
+              <button
+                key={statusVal}
+                className={`suggestion-chip ${statusFilter === statusVal ? "active-filter" : ""}`}
+                onClick={() => setStatusFilter(statusVal)}
+                style={{
+                  backgroundColor: statusFilter === statusVal ? "var(--ink)" : "white",
+                  color: statusFilter === statusVal ? "var(--gold-light)" : "var(--ink)",
+                  border: statusFilter === statusVal ? "1px solid var(--ink)" : "1px solid var(--paper-border)",
+                  fontWeight: statusFilter === statusVal ? "600" : "400",
+                  padding: "4px 10px",
+                  fontSize: "12px",
+                  borderRadius: "6px",
+                  cursor: "pointer"
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Case table view */}
       <section className="registry-table-box">
         {filteredCases.length === 0 ? (
-          <div className="empty-notice" style={{ padding: "4rem 2rem" }}>
-            <h3>No judgments match your search or filter</h3>
-            <p className="analysis-file">Try adjusting your filters or upload a new judgment PDF.</p>
+          <div className="empty-notice" style={{ padding: "4rem 2rem", textAlign: "center" }}>
+            <h3>No judgments found</h3>
+            <p className="analysis-file">
+              {isJudge
+                ? "Your docket currently has no cases matching this filter. Upload a judgment PDF to begin."
+                : "No judgments match your search or filter. Try adjusting your filters."}
+            </p>
+            <button className="sample-case-btn" onClick={() => onNavigate("upload")} style={{ margin: "1rem auto 0" }}>
+              Ingest Court Judgment
+            </button>
           </div>
         ) : (
           <div className="registry-table-scroll">
@@ -157,6 +226,7 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
                 <tr>
                   <th>Case Title / Source Filename</th>
                   <th>Reference Number</th>
+                  <th>Case Type (Allocated)</th>
                   <th>Court / Jurisdiction</th>
                   <th>Status</th>
                   <th>Date Ingested</th>
@@ -172,6 +242,21 @@ export default function CasesScreen({ onSelectCase, onNavigate }) {
                     </td>
                     <td>
                       <code className="mono-code">{c.case_number || "Pending"}</code>
+                    </td>
+                    <td>
+                      <span style={{
+                        display: "inline-block",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        background: (c.case_type || "").includes("Asset") ? "rgba(212,175,55,0.15)" : "rgba(255,255,255,0.06)",
+                        border: (c.case_type || "").includes("Asset") ? "1px solid rgba(212,175,55,0.35)" : "1px solid rgba(255,255,255,0.1)",
+                        color: (c.case_type || "").includes("Asset") ? "var(--gold)" : "#C8C2B9",
+                        whiteSpace: "nowrap"
+                      }}>
+                        {c.case_type || "General / Civil"}
+                      </span>
                     </td>
                     <td>
                       <span className="court-label">{c.court || "Not extracted"}</span>

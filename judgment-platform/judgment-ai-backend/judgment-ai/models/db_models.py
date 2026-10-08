@@ -15,9 +15,11 @@ class User(Base):
 
     id = Column(String, primary_key=True, default=new_id)
     external_id = Column(String, unique=True, nullable=True, index=True)
+    username = Column(String, unique=True, nullable=True, index=True)
+    password_hash = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False, index=True)
     name = Column(String, nullable=True)
-    role = Column(String, nullable=False, default="department_officer")
+    role = Column(String, nullable=False, default="legal_reviewer")
     department = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -30,11 +32,12 @@ class Case(Base):
     case_title = Column(String, nullable=True)
     case_number = Column(String, nullable=True, index=True)
     court = Column(String, nullable=True)
+    case_type = Column(String, nullable=True, index=True)
     department = Column(String, nullable=True, index=True)
     status = Column(String, nullable=False, default="uploaded", index=True)
     error_message = Column(Text, nullable=True)
     pages_indexed = Column(Integer, default=0)
-    created_by = Column(String, nullable=True)
+    created_by = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

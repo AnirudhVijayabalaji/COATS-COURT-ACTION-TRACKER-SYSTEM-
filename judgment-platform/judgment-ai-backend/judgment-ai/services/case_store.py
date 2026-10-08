@@ -11,8 +11,15 @@ def create_case(
     filename: str,
     document_info: dict | None = None,
     created_by: str | None = None,
+    case_type: str | None = None,
 ) -> Case:
-    case = Case(id=case_id, filename=filename, status="uploaded", created_by=created_by)
+    case = Case(
+        id=case_id,
+        filename=filename,
+        status="uploaded",
+        created_by=created_by,
+        case_type=case_type,
+    )
     db.add(case)
     db.flush()
 
@@ -57,6 +64,9 @@ def save_processed_case(db: Session, case_id: str, data: dict) -> None:
     case.case_title = header.get("case_title")
     case.case_number = header.get("case_number")
     case.court = header.get("court")
+    extracted_case_type = header.get("case_type") or data.get("case_type")
+    if extracted_case_type:
+        case.case_type = extracted_case_type
     case.pages_indexed = header.get("pages_indexed") or len(data.get("pages") or [])
     case.status = "pending_review"
     case.error_message = None
@@ -108,6 +118,8 @@ def get_case_payload(db: Session, case_id: str) -> Optional[dict]:
         "case_title": case.case_title,
         "case_number": case.case_number,
         "court": case.court,
+        "case_type": case.case_type or "General / Civil Litigation",
+        "created_by": case.created_by,
         "pages_indexed": case.pages_indexed,
     }
 
@@ -117,19 +129,50 @@ def exists(case_id: str) -> bool:
         return db.get(Case, case_id) is not None
 
 
-def all_cases() -> list[dict]:
-    with session_scope() as db:
+def all_cases(db: Session | None = None) -> list[dict]:
+    def _fetch(session: Session):
         return [
             {
                 "case_id": c.id,
                 "filename": c.filename,
                 "case_title": c.case_title,
                 "case_number": c.case_number,
+                "court": c.court,
+                "case_type": c.case_type or "General / Civil Litigation",
+                "created_by": c.created_by,
                 "status": c.status,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
             }
-            for c in db.query(Case).order_by(Case.created_at.desc()).all()
+            for c in session.query(Case).order_by(Case.created_at.desc()).all()
         ]
+
+    if db:
+        return _fetch(db)
+    with session_scope() as session:
+        return _fetch(session)
+
+
+def cases_for_user(db: Session, user) -> list[dict]:
+    """Retrieve cases isolated for the current user."""
+    query = db.query(Case)
+    # Judges can ONLY view their own cases
+    if user.role == "legal_reviewer":
+        query = query.filter(Case.created_by == user.id)
+
+    return [
+        {
+            "case_id": c.id,
+            "filename": c.filename,
+            "case_title": c.case_title,
+            "case_number": c.case_number,
+            "court": c.court,
+            "case_type": c.case_type or "General / Civil Litigation",
+            "created_by": c.created_by,
+            "status": c.status,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        }
+        for c in query.order_by(Case.created_at.desc()).all()
+    ]
 
 
 def approved_cases(db: Session) -> list[VerifiedActionPlan]:

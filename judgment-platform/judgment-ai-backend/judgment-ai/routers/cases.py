@@ -2,6 +2,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
+from core.security import get_current_user
+from models.db_models import User
 from models.schemas import AskRequest, AskResponse
 from services import case_store, langchain_agent_service
 from services.audit_service import log_action
@@ -11,18 +13,31 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/cases")
-async def list_cases():
-    return {"cases": case_store.all_cases()}
+async def list_cases(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return {"cases": case_store.cases_for_user(db, user)}
 
 
 @router.get("/cases/{case_id}/brief")
-async def get_brief(case_id: str, db: Session = Depends(get_db)):
+async def get_brief(
+    case_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Returns verified brief if exists, otherwise AI brief for workspace screens.
+    Enforces judge docket isolation.
     """
     case = case_store.get_case_payload(db, case_id)
     if not case:
         raise HTTPException(404, "Case not found or still processing")
+
+    # Strict isolation for judges: cannot view other judges' cases
+    if user.role == "legal_reviewer" and case.get("created_by") and case.get("created_by") != user.id:
+        raise HTTPException(403, "Access denied. You can only view your own cases.")
+
     if case.get("error_message"):
         raise HTTPException(500, case["error_message"])
     
@@ -44,20 +59,33 @@ async def get_brief(case_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/cases/{case_id}/approved-brief")
-async def get_approved_brief(case_id: str, db: Session = Depends(get_db)):
+async def get_approved_brief(
+    case_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     case = case_store.get_case_payload(db, case_id)
     if not case:
         raise HTTPException(404, "Case not found")
+    if user.role == "legal_reviewer" and case.get("created_by") and case.get("created_by") != user.id:
+        raise HTTPException(403, "Access denied. You can only view your own cases.")
     if not case.get("verified_brief"):
         raise HTTPException(404, "No approved action plan for this case")
     return case["verified_brief"]
 
 
 @router.post("/cases/{case_id}/ask", response_model=AskResponse)
-async def ask_question(case_id: str, req: AskRequest, db: Session = Depends(get_db)):
+async def ask_question(
+    case_id: str,
+    req: AskRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     case = case_store.get_case_payload(db, case_id)
     if not case:
         raise HTTPException(404, "Case not found")
+    if user.role == "legal_reviewer" and case.get("created_by") and case.get("created_by") != user.id:
+        raise HTTPException(403, "Access denied. You can only query your own cases.")
 
     result = langchain_agent_service.answer_case_question(case, req.question)
     sources = [{"page": s["page"], "excerpt": s["excerpt"]} for s in result["sources"]]
