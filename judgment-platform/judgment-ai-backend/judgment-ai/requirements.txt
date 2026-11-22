@@ -11,3 +11,7 @@ SQLAlchemy
 groq
 langchain-groq
 nemoguardrails>=0.24.0
+reportlab
+pytesseract
+pdf2image
+pillow

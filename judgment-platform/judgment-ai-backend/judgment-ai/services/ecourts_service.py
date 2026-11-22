@@ -1,10 +1,15 @@
 import io
 import logging
 from typing import Any, Dict, List, Optional
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
+    letter = colors = SimpleDocTemplate = Paragraph = Spacer = HRFlowable = getSampleStyleSheet = ParagraphStyle = None
 
 try:
     import bharat_courts
@@ -115,6 +120,10 @@ DEMO_CASES: Dict[str, Dict[str, Any]] = {
 }
 
 def generate_judgment_pdf(case_data: Dict[str, Any]) -> bytes:
+    if not HAS_REPORTLAB:
+        logger.warning("ReportLab not available; returning fallback PDF stream.")
+        return b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF\n"
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,

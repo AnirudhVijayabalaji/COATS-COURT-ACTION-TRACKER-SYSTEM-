@@ -1,6 +1,5 @@
 import logging
 from services import ai_service, vector_service
-from services import google_adk_service
 
 logger = logging.getLogger(__name__)
 
