@@ -10,6 +10,7 @@
 **COATS (Court Order Action & Tracking System)** is an enterprise-grade judicial intelligence and compliance platform designed for Indian courts, legal reviewers, and administrative government departments. 
 
 It bridges the gap between judicial pronouncements and executive execution by transforming unstructured multi-page court orders and judgments into **source-verified, structured action plans with traceable deadlines and responsible authorities**.
+
 **Fully Deployed App** | (https://coats-court-action-tracker-system.onrender.com)
 ---
 
