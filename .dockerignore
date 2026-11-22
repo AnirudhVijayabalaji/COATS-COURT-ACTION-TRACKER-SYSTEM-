@@ -1,0 +1,13 @@
+.git
+.github
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.vercel
+**/.firebase
+storage
+uploads
+chroma_db
+judgment_platform.db
+*.log

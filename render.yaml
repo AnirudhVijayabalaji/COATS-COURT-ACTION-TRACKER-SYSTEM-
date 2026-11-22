@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: coats-judgment-platform
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: OCR_ENABLED
+        value: "true"
+      - key: NEMO_GUARDRAILS_NO_USAGE_STATS
+        value: "1"
+      - key: DO_NOT_TRACK
+        value: "1"

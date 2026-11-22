@@ -83,3 +83,25 @@ async def startup_log():
     log.info("  GET  /dashboard/approved-actions    trusted dashboard data")
     log.info("  GET  /docs                          Swagger UI")
     log.info("=" * 70)
+
+
+# ── Mount Frontend SPA for Unified Docker / Render Deployment ────────────────
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        target_path = os.path.join(static_dir, full_path)
+        if full_path and os.path.isfile(target_path):
+            return FileResponse(target_path)
+        index_html = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_html):
+            return FileResponse(index_html)
+        return {"detail": "Frontend static build not found."}
+

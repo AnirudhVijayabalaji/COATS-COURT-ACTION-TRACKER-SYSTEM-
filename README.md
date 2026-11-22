@@ -48,8 +48,11 @@ Government departments and judicial clerks frequently struggle to:
 - **Automated Judgment Intake & eCourts Integration:**
   - Upload digital or scanned PDF judgments directly.
   - Query official case records and orders via Indian judicial **CNR (Case Number Record)** lookup.
+- **Enterprise NVIDIA NeMo Guardrails (`nemoguardrails`):**
+  - Official Colang 1.0 dialog flows (`.co`) and custom action dispatchers (`@action check_judgment_document`).
+  - Dual-layer protection: Blocks non-judicial documents (resumes, invoices, general text) at intake before processing, and neutralizes prompt injections / system overrides during source-bound legal Q&A.
 - **Document Authenticity Guardrail:**
-  - Microsecond heuristic intake filter that checks judicial forum markers, bench coram, and case filings, blocking invalid files (e.g., invoices, resumes) before processing.
+  - Microsecond heuristic intake filter that checks judicial forum markers, bench coram, and case filings, blocking invalid files before processing.
 - **AI-Powered Structured Extraction:**
   - Automatically identifies Case Title, Docket Number, Court/Bench, Hon'ble Judges, Filing Dates, and Disposed/Admitted status.
   - Extracts distinct **Relief Items** with granular outcomes (Granted, Dismissed, Directed).
@@ -118,12 +121,21 @@ flowchart TD
 | **Pydantic v2** | Data schema validation and structured JSON serialization |
 | **HTTPX** | Asynchronous HTTP client for eCourts portal synchronization |
 
-### **AI, LLM & Orchestration**
+### **Guardrails, Security & Orchestration**
 | Technology | Description |
 |---|---|
-| **Groq Cloud API** | Ultra-low latency LPU inference engine |
+| **NVIDIA NeMo Guardrails** | Official `nemoguardrails` runtime with Colang dialog flows and registered custom action verification |
+| **LangChain & LangChain-Groq** | Orchestration for structured prompt pipelines, agentic workflows, and RAG chains |
+| **Groq Cloud API** | Ultra-low latency LPU inference engine (`openai/gpt-oss-120b`, `gpt-oss-20b`) |
 | **Google Gemini (ADK)** | Multi-modal reasoning and fallback language models |
-| **LangChain & LangChain-Groq** | Orchestration for structured prompt pipelines and RAG chains |
+
+### **Deployment & Containerization**
+| Technology | Description |
+|---|---|
+| **Docker** | Multi-stage unified container bundling React 19 SPA, Tesseract OCR, Poppler & FastAPI |
+| **Render** | Native single-form container hosting with blueprint (`render.yaml`) |
+| **Firebase Hosting** | High-speed global CDN for static SPA deployment |
+| **Vercel** | Serverless edge deployment for lightweight tiers |
 
 ### **Document Processing & OCR**
 | Technology | Description |

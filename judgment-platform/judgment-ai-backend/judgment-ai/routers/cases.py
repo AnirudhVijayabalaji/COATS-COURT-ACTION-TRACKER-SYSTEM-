@@ -87,6 +87,16 @@ async def ask_question(
     if user.role == "legal_reviewer" and case.get("created_by") and case.get("created_by") != user.id:
         raise HTTPException(403, "Access denied. You can only query your own cases.")
 
+    # NVIDIA NeMo Guardrails: Query safety & prompt injection check
+    from services import nemo_guardrail_service
+    safety_check = nemo_guardrail_service.check_query_safety(req.question)
+    if not safety_check.get("safe", True):
+        return AskResponse(
+            answer=safety_check.get("reason", "Query blocked by NVIDIA NeMo Guardrails: Potential prompt injection or system bypass attempt."),
+            sources=[],
+            confidence=0.0,
+        )
+
     result = langchain_agent_service.answer_case_question(case, req.question)
     sources = [{"page": s["page"], "excerpt": s["excerpt"]} for s in result["sources"]]
 
